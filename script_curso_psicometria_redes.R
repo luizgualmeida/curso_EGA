@@ -1,8 +1,7 @@
-# =============================================================================
-#  PSICOMETRIA DE REDES — SCRIPT COMPLETO DO CURSO
-# =============================================================================
+#  PSICOMETRIA DE REDES — SCRIPT COMPLETO DO CURSO ----
+
 #
-#  ESTRUTURA DO SCRIPT
+#  ESTRUTURA DO SCRIPT ----
 #  ─────────────────────────────────────────────────────────────────────────
 #  DIA 1 – HORA 1:  Teoria (slides – sem código)
 #  DIA 1 – HORA 2:  Prática 1 — Preparação, exploração e UVA
@@ -12,12 +11,10 @@
 #
 #  DICA: execute o código BLOCO POR BLOCO (Ctrl+Enter no RStudio).
 #  Não tente rodar tudo de uma vez logo no início.
-# =============================================================================
 
 
-# =============================================================================
-#  BLOCO 0 – INSTALAÇÃO E CARREGAMENTO DOS PACOTES
-# =============================================================================
+
+#  BLOCO 0 – INSTALAÇÃO E CARREGAMENTO DOS PACOTES ----
 
 # Instale apenas se ainda não tiver instalado.
 # Remova o "#" na frente de install.packages() da linha correspondente
@@ -31,7 +28,7 @@
 # install.packages("dplyr")       # manipulação de dados
 # install.packages("haven")       # leitura de arquivos .sav (SPSS)
 
-# Carregando os pacotes -------------------------------------------------------
+## Carregando os pacotes -------------------------------------------------------
 library(EGAnet)     # Exploratory Graph Analysis (Golino & Epskamp, 2017)
 library(tidyverse)  # conjunto de pacotes para ciência de dados
 library(psych)      # estatísticas psicométricas clássicas
@@ -44,9 +41,12 @@ packageVersion("EGAnet")   # idealmente >= 2.0
 packageVersion("psych")    # idealmente >= 2.0
 
 
-# =============================================================================
-#  BLOCO 1 – CARREGANDO E PREPARANDO OS DADOS
-# =============================================================================
+
+
+
+
+#  BLOCO 1 – CARREGANDO E PREPARANDO OS DADOS ----
+
 
 # Os dados vêm do estudo: Trust in scientists and their role in society across 
 # 68 countries. Cologna et.al 2025. Nature Human Behaviour"
@@ -55,7 +55,7 @@ packageVersion("psych")    # idealmente >= 2.0
 # Vamos focar no Brasil, mas o código para todos os países
 # está comentado logo abaixo.
 
-# --- 1.1 Carregando o banco de dados -----------------------------------------
+## --- 1.1 Carregando o banco de dados -----------------------------------------
 
 dados_completos <- readRDS("ds_main.rds")
 
@@ -69,27 +69,26 @@ head(dados_completos, 3)   # primeiras 3 linhas
 table(dados_completos$COUNTRY_CODE)   
 
 
-# --- 1.2 Filtrando apenas o Brasil -------------------------------------------
+## --- 1.2 Filtrando por país -------------------------------------------
 
-# FOCO DO CURSO: dados do Brasil
 dados_br <- dados_completos %>%   #|> 
   filter(COUNTRY_CODE == "BRA")    # ajuste o nome da categoria se necessário
 
 # Verificando quantos participantes temos do Brasil
 nrow(dados_br)
 
-
-# --- 1.3 [OPCIONAL] Rodando com todos os países ------------------------------
-# Para usar todos os países, basta comentar o filtro acima e usar:
-#
-# dados_analise <- dados_completos   # sem filtro de país
-#
 # Para analisar países específicos, pode-se usar:
 # dados_BRA_USA_DEU <- dados_completos |>
 #   filter(COUNTRY_CODE %in% c("BRA", "USA", "DEU"))
 
 
-# --- 1.4 Selecionando apenas os itens de confiança ---------------------------
+## --- 1.3 Rodando com todos os países FOCO DO CURSO ------------------------------
+# Para usar todos os países, basta comentar o filtro acima e usar:
+#
+dados_analise <- dados_completos   # sem filtro de país
+
+
+## --- 1.4 Selecionando apenas os itens de confiança ---------------------------
 # A escala de confiança nos cientistas tem múltiplos itens.
 # Veja o codebook ou o artigo para identificar quais colunas são os itens.
 # Abaixo, ajuste os nomes das colunas conforme o seu banco real.
@@ -98,16 +97,16 @@ nrow(dados_br)
 # Os itens provavelmente seguem um padrão 
 
 # Identificando colunas de itens (procure por padrão de nome)
-nomes_colunas <- names(dados_br)
+nomes_colunas <- names(dados_analise)
 print(nomes_colunas)  # examine a lista e identifique os itens
 
 # Selecione os itens manualmente — ajuste conforme o banco real:
 # (Este é um exemplo genérico; substitua pelos nomes reais)
-itens_trust <- dados_br |>
-  select(starts_with("TRUST_SCI_"))   # ajuste o prefixo conforme necessário
+itens_trust <- dados_analise |>
+  dplyr::select(starts_with("TRUST_SCI_"))   # ajuste o prefixo conforme necessário
 
 # Se preferir selecionar por posição de coluna:
-# itens_trust <- dados_br %>% 
+# itens_trust <- dados_analise %>% 
 #   dplyr::select(59:70)
 
 
@@ -119,14 +118,18 @@ head(itens_trust)
 # saveRDS(itens_trust, file = "itens_trust")
 # write.csv(itens_trust, file = "itens_trust-comma")
 
-# =============================================================================
-#  BLOCO 2 – ESTATÍSTICAS DESCRITIVAS E EXPLORAÇÃO INICIAL
-# =============================================================================
+
+
+
+
+
+
+#  BLOCO 2 – ESTATÍSTICAS DESCRITIVAS E EXPLORAÇÃO INICIAL----
 
 # Antes de qualquer análise de rede, é essencial conhecer os seus dados.
 # Pule esta etapa e você pode chegar a conclusões equivocadas.
 
-# --- 2.1 Descritivas básicas -------------------------------------------------
+## --- 2.1 Descritivas básicas -------------------------------------------------
 
 # Usando o pacote psych para um resumo completo
 describe(itens_trust)
@@ -139,7 +142,7 @@ describe(itens_trust)
 # - range: mín e máx (verifique se fazem sentido para a escala)
 
 
-# --- 2.2 Dados ausentes (missing data) ----------------------------------------
+## --- 2.2 Dados ausentes (missing data) ----------------------------------------
 
 # Contar quantos NAs existem por coluna
 missing_por_item <- colSums(is.na(itens_trust))
@@ -152,7 +155,7 @@ print(missing_pct)
 # Regra geral: se > 10% de missing, investigue antes de prosseguir.
 
 
-# --- 2.3 Distribuições por item -----------------------------------------------
+## --- 2.3 Distribuições por item -----------------------------------------------
 
 # Frequências de resposta para cada item (útil para escalas Likert)
 for (item in names(itens_trust)) {
@@ -161,7 +164,7 @@ for (item in names(itens_trust)) {
 }
 
 
-# --- 2.4 Matriz de correlação visual ------------------------------------------
+## --- 2.4 Matriz de correlação visual ------------------------------------------
 
 # A rede é construída a partir das correlações entre itens.
 # Vale a pena visualizar a matriz de correlação antes.
@@ -172,28 +175,59 @@ round(cor_matrix, 2)   # arredondando para facilitar leitura
 # Visualizando a matriz de correlação como mapa de calor
 heatmap(cor_matrix)
 
-# =============================================================================
-#  BLOCO 3 – PASSO 1: ANÁLISE DE VARIÁVEIS ÚNICAS (UVA)
-#  Identificar e tratar redundâncias entre itens
-# =============================================================================
+
+
+
+
+
+
+
+
+
+#  BLOCO 3 – PASSO 1: ANÁLISE DE VARIÁVEIS ÚNICAS (UVA)----
+##  Identificar e tratar redundâncias entre itens----
 
 # O que é UVA?
-# ─────────────────────────────────────────────────────────────────────────
 # Antes de rodar a EGA, precisamos verificar se há itens REDUNDANTES.
 # Dois itens são redundantes quando medem essencialmente a mesma coisa —
 # ou seja, quando a correlação entre eles é tão alta que um não acrescenta
 # informação além do outro.
+# 
+# Exemplo: 
+# "Cientistas são honestos"
+# "Cientistas dizem a verdade"
+# 
+# Nesse caso, manter ambos pode:
+#   
+# - inflar artificialmente a dimensionalidade;
+# - aumentar a consistência interna sem realmente adicionar informação;
+# - criar problemas de interpretação na EGA.
+# 
+# A UVA identifica exatamente esse tipo de situação, criando uma rede com a matriz
+# de correlação parcial dos itens. NÃO MOSTRA A REDE.
 #
 # UVA usa a medida "weighted Topological Overlap" (wTO):
-# - wTO > 0.25 = redundância moderada a grande (deve ser tratada)
-# - wTO > 0.30 = redundância grande a muito grande
+#
+#   Dois itens têm overlap alto se:
+#     - estão fortemente ligados entre si
+#     - possuem vizinhos semelhantes
+#     - possuem padrões de conexão semelhantes
+#
+# Exemplo que pode dar problema: 
+#   "Cientistas são honestos"
+#   "Cientistas dizem a verdade"
+#
+# Exemplo que merece ser avaliado
+#   - Cientistas são honestos?
+#   - Cientistas são sinceros?
+#   - Cientistas são éticos?
 #
 # Por que isso importa?
 # Itens redundantes inflam artificialmente dimensões e distorcem a rede.
 # Referência: Christensen, Garrido & Golino (2023)
 # ─────────────────────────────────────────────────────────────────────────
 
-# --- 3.1 Rodando a UVA -------------------------------------------------------
+## --- 3.1 Rodando a UVA -------------------------------------------------------
 
 # ATENÇÃO: retire os NAs antes da UVA
 itens_trust_uva <- itens_trust[complete.cases(itens_trust), ]
@@ -203,9 +237,7 @@ cat("N após remoção de NAs:", nrow(itens_trust_uva), "\n")
 # Rodando a UVA
 # O argumento "key" permite passar os textos reais dos itens (opcional, mas útil)
 uva_resultado <- UVA(
-  data = itens_trust_uva
-  # key = c("Item 1 - texto aqui", "Item 2 - texto aqui", ...)
-  # Descomente a linha acima e substitua pelos textos reais dos seus itens
+  data = itens_trust_uva,
 )
 
 # Exibindo os resultados
@@ -215,7 +247,7 @@ print(uva_resultado)
 # - Pares de variáveis com wTO > 0.25 (redundância)
 
 
-# --- 3.2 Inspecionando o resultado da UVA ------------------------------------
+## --- 3.2 Inspecionando o resultado da UVA ------------------------------------
 
 # Quais variáveis foram mantidas e quais foram removidas?
 uva_resultado$keep_remove
@@ -229,7 +261,7 @@ cat("Itens removidos por redundância:",
     ncol(itens_trust_uva) - ncol(dados_reduzidos), "\n")
 
 
-# --- 3.3 [OPCIONAL] Tratamento manual de redundâncias ------------------------
+## --- 3.3 [OPCIONAL] Tratamento manual de redundâncias ------------------------
 # Se quiser tratar manualmente (removendo item específico):
 #
 # dados_reduzidos <- dados_completos_uva |>
@@ -237,10 +269,11 @@ cat("Itens removidos por redundância:",
 
 
 
-# =============================================================================
-#  BLOCO 4 – PASSO 2: EGA — EXPLORATORY GRAPH ANALYSIS
-#  O coração do curso
-# =============================================================================
+
+
+
+
+#  BLOCO 4 – PASSO 2: EGA — EXPLORATORY GRAPH ANALYSIS----
 
 # O que é a EGA?
 # ─────────────────────────────────────────────────────────────────────────
@@ -255,12 +288,11 @@ cat("Itens removidos por redundância:",
 # 2. Algoritmo de comunidade: detecta grupos (clusters) de itens
 #    densamente conectados entre si. Cada comunidade = dimensão latente.
 #
-# A lógica central: CLUSTERS NA REDE = VARIÁVEIS LATENTES
 # ─────────────────────────────────────────────────────────────────────────
 
 
 
-# --- 4.2 Rodando a EGA -------------------------------------------------------
+## --- 4.1 Rodando a EGA -------------------------------------------------------
 
 set.seed(42)   # fixando a semente para reprodutibilidade
 
@@ -273,7 +305,7 @@ ega_trust <- EGA(
 
 
 
-# --- 4.1 O argumento uni.method — avaliação da unidimensionalidade ---------
+## --- 4.2 O argumento uni.method — avaliação da unidimensionalidade ---------
 #
 # Antes de estimar a estrutura dimensional, a EGA precisa decidir se os dados
 # apresentam mais de uma dimensão. Essa etapa é importante porque algoritmos
@@ -377,7 +409,7 @@ ega_trust <- EGA(
 # ─────────────────────────────────────────────────────────────────────────
 
 
-# --- 4.2 Rodando a EGA -------------------------------------------------------
+## --- 4.3 Rodando a EGA -------------------------------------------------------
 
 set.seed(42)   # fixando a semente para reprodutibilidade
 
@@ -391,7 +423,7 @@ ega_resultado <- EGA(
   # "BGGM"    → Bayesian GGM (mais lento, adequado para N pequeno)
   
   # ALGORITMO DE DETECÇÃO DE COMUNIDADES
-  algorithm = "walktrap",
+  algorithm = "louvain",
   # "louvain"  → Louvain com consensus clustering (bom para dados
   #              psicologia; padrão atual do EGAnet v2+)
   # "walktrap" → Walktrap (usado no artigo original de 2017; mais conservador)
@@ -418,7 +450,7 @@ ega_resultado <- EGA(
 summary(ega_resultado)
 
 
-# --- 4.3 Interpretando o output ----------------------------------------------
+## --- 4.4 Interpretando o output ----------------------------------------------
 
 # O summary mostra:
 # ─────────────────────────────────────────────────────────────────────────
@@ -452,7 +484,7 @@ cat("\nAlocação dos itens por dimensão:\n")
 print(ega_resultado$wc)   # wc = walktrap/louvain communities
 
 
-# --- 4.4 Visualização da rede ------------------------------------------------
+## --- 4.5 Visualização da rede ------------------------------------------------
 
 # O gráfico já é gerado automaticamente pelo plot.EGA = TRUE.
 # Para customizar (cores, tamanho dos nós, rótulos), use plot():
@@ -460,7 +492,10 @@ plot(ega_resultado)
 
 
 
-# --- 4.5 Comparando algoritmos de comunidade ---------------------------------
+
+
+# SUGESTÃO PARADA AULA 1----
+## --- 4.5 Comparando algoritmos de comunidade ---------------------------------
 #
 # É boa prática verificar se o resultado é robusto ao algoritmo escolhido.
 # Rode a EGA com pelo menos dois algoritmos e compare o n.dim:
@@ -493,7 +528,7 @@ cat("Leiden   :", ega_leiden$n.dim,    "dimensões\n")
 # Se divergirem → investigue com o bootEGA qual solução é mais estável.
 
 
-# --- 4.6 [OPCIONAL] EGA com dados de todos os países -------------------------
+## --- 4.6 [OPCIONAL] EGA com dados de todos os países -------------------------
 # Para replicar com todos os países (sem filtro):
 #
 # dados_todos <- dados_completos |>
@@ -512,10 +547,8 @@ cat("Leiden   :", ega_leiden$n.dim,    "dimensões\n")
 
 
 
-# =============================================================================
-#  BLOCO 5 – PASSO 3: bootEGA — ESTABILIDADE DA SOLUÇÃO
+#  BLOCO 5 – PASSO 3: bootEGA — ESTABILIDADE DA SOLUÇÃO----
 #  Quão confiável é a estrutura que encontramos?
-# =============================================================================
 
 # Por que verificar a estabilidade?
 # ─────────────────────────────────────────────────────────────────────────
@@ -548,7 +581,7 @@ boot_resultado <- bootEGA(
 summary(boot_resultado)
 
 
-# --- 5.1 Interpretando o bootEGA ---------------------------------------------
+## --- 5.1 Interpretando o bootEGA ---------------------------------------------
 
 # O summary mostra:
 # ─────────────────────────────────────────────────────────────────────────
@@ -563,7 +596,7 @@ summary(boot_resultado)
 # ─────────────────────────────────────────────────────────────────────────
 
 
-# --- 5.2 Estabilidade dimensional --------------------------------------------
+## --- 5.2 Estabilidade dimensional --------------------------------------------
 
 # Verifica a estabilidade de cada DIMENSÃO e de cada ITEM
 
@@ -585,7 +618,7 @@ print(estab_dimensional)
 # ─────────────────────────────────────────────────────────────────────────
 
 
-# --- 5.3 Comparando estrutura empírica vs. estrutura mediana bootstrap --------
+## --- 5.3 Comparando estrutura empírica vs. estrutura mediana bootstrap --------
 
 comparacao <- compare.EGA.plots(
   ega_resultado,
@@ -595,15 +628,14 @@ comparacao <- compare.EGA.plots(
 # Idealmente os dois gráficos devem ser muito similares.
 
 
-# =============================================================================
-#  BLOCO 6 – MÉTRICAS DE CENTRALIDADE DA REDE
+
+#  BLOCO 6 – MÉTRICAS DE CENTRALIDADE DA REDE----
 #  Quais itens são mais "importantes" na rede?
-# =============================================================================
 
 # Centralidade: medidas que quantificam a importância de cada nó na rede.
 # Na psicometria de redes, nós são os itens (variáveis).
 
-# --- 6.1 Calculando centralidade ---------------------------------------------
+## --- 6.1 Calculando centralidade ---------------------------------------------
 
 centralidade <- centrality_auto(ega_resultado$network)
 
@@ -626,7 +658,7 @@ centralityPlot(ega_resultado$network,
                orderBy = "Strength")
 
 
-# --- 6.2 Extraindo os valores numéricos de centralidade ----------------------
+## --- 6.2 Extraindo os valores numéricos de centralidade ----------------------
 
 # Força (strength) de cada item — o mais usado em psicometria de redes
 forca <- centralidade$node.centrality$Strength
@@ -641,20 +673,18 @@ cat("Item menos central (menor Strength):",
     names(which.min(forca)), "\n")
 
 
-# =============================================================================
-#  BLOCO 7 – ANÁLISE POR PAÍS (Comparação Internacional)
+#  BLOCO 7 – ANÁLISE POR PAÍS (Comparação Internacional)----
 #  [BLOCO OPCIONAL — para exploração adicional]
-# =============================================================================
 
 # Se quiser comparar a estrutura de rede entre países, é possível
 # rodar a EGA separadamente para cada país e depois comparar.
 
-# --- 7.1 Lista de países disponíveis -----------------------------------------
+## --- 7.1 Lista de países disponíveis -----------------------------------------
 
 paises <- unique(dados_completos$country)
 print(paises)
 
-# --- 7.2 Função para rodar EGA por país (com tratamento de erros) ------------
+## --- 7.2 Função para rodar EGA por país (com tratamento de erros) ------------
 
 rodar_ega_por_pais <- function(pais, dados_raw) {
 
@@ -697,12 +727,10 @@ rodar_ega_por_pais <- function(pais, dados_raw) {
 # names(resultados_paises) <- paises
 
 
-# =============================================================================
-#  BLOCO 8 – REPORTANDO OS RESULTADOS
+#  BLOCO 8 – REPORTANDO OS RESULTADOS----
 #  Como escrever sobre análise de redes em artigos científicos
-# =============================================================================
 
-# --- 8.1 Informações para o método -------------------------------------------
+## --- 8.1 Informações para o método -------------------------------------------
 
 cat("\n\n===== INFORMAÇÕES PARA A SEÇÃO DE MÉTODO =====\n\n")
 
@@ -725,7 +753,7 @@ cat("  - Iterações: 500\n")
 cat("  - Critério de estabilidade: >= 0.70\n\n")
 
 
-# --- 8.2 Tabela de resultados -------------------------------------------------
+## --- 8.2 Tabela de resultados -------------------------------------------------
 
 # Criando uma tabela resumindo dimensões e itens
 tabela_dimensoes <- data.frame(
@@ -743,7 +771,7 @@ write.csv(tabela_dimensoes, "resultado_dimensoes_brasil.csv", row.names = FALSE)
 cat("Tabela exportada para 'resultado_dimensoes_brasil.csv'\n")
 
 
-# --- 8.3 Salvando os objetos R -----------------------------------------------
+## --- 8.3 Salvando os objetos R -----------------------------------------------
 
 # Salva tudo em um único arquivo para não perder os resultados
 save(uva_resultado, ega_resultado, boot_resultado,
@@ -754,8 +782,8 @@ cat("Objetos salvos em 'resultados_ega_brasil.RData'\n")
 # load("resultados_ega_brasil.RData")
 
 
-# =============================================================================
-#  BLOCO 9 – EXERCÍCIOS PROPOSTOS
+
+#  BLOCO 9 – EXERCÍCIOS PROPOSTOS----
 # =============================================================================
 
 # EXERCÍCIO 1 – Explorando os dados
@@ -830,6 +858,22 @@ cat("Objetos salvos em 'resultados_ega_brasil.RData'\n")
 #  Almeida, I. & Pilati, R. Rethinking Trust in Scientists as a
 #    Network Model: A Global Analysis and Implications for Science
 #    Communication.
+#
+# Benedictis, L. D. (2023). Cultures as networks of cultural traits: A unifying framework for measuring culture and cultural distances. 186(3).
+# Borsboom, D. (2008). Psychometric perspectives on diagnostic systems. Journal of Clinical Psychology, 64(9), 1089–1108. https://doi.org/10.1002/jclp.20503
+# Christensen, A. P., Garrido, L. E., Guerra-Peña, K., & Golino, H. (2023). Comparing community detection algorithms in psychometric networks: A Monte Carlo simulation. Behavior Research Methods, 56(3), 1485–1505. https://doi.org/10.3758/s13428-023-02106-4
+# Cramer, A. O. J., Waldorp, L. J., Van Der Maas, H. L. J., & Borsboom, D. (2010). Comorbidity: A network perspective. Behavioral and Brain Sciences, 33(2–3), 137–150. https://doi.org/10.1017/S0140525X09991567
+# Dalege, J., & van der Does, T. (2022). Using a cognitive network model of moral and social beliefs to explain belief change. Science Advances, 8(33), eabm0137. https://doi.org/10.1126/sciadv.abm0137
+# Dinić, B. M., Costantini, G., Papageorgiou, K. A., Bonfá-Araujo, B., Grabovac, B., Żemojtel-Piotrowska, M., Ankit, Wertag, A., Kornienko, D., Tripathi, P., Kyriazos, T., Zhang, J., Poga, M., & Tomašević, A. (2025). The Short Dark Triad across 14 cultures: A novel network-based invariance approach. Personality and Individual Differences, 246, 113321. https://doi.org/10.1016/j.paid.2025.113321
+# Golino, H., & Christensen, A. (2019). EGAnet: Exploratory Graph Analysis – a Framework for Estimating the Number of Dimensions in Multivariate Data using Network Psychometrics [Dataset]. The R Foundation. https://doi.org/10.32614/cran.package.eganet
+# Golino, H., Christensen, A. P., Moulder, R., Kim, S., & Boker, S. M. (2022). Modeling Latent Topics in Social Media using Dynamic Exploratory Graph Analysis: The Case of the Right-wing and Left-wing Trolls in the 2016 US Elections. Psychometrika, 87(1), 156–187. https://doi.org/10.1007/s11336-021-09820-y
+# Golino, H. F., & Demetriou, A. (2017). Estimating the dimensionality of intelligence like data using Exploratory Graph Analysis. Intelligence, 62, 54–70. https://doi.org/10.1016/j.intell.2017.02.007
+# Jamison, L., Christensen, A. P., & Golino, H. F. (2024). Metric Invariance in Exploratory Graph Analysis via Permutation Testing. Methodology, 20(2), Article 2. https://doi.org/10.5964/meth.12877
+# Laskowski, N. M., Halbeisen, G., Braks, K., Huber, T. J., & Paslakis, G. (2023). Exploratory graph analysis (EGA) of the dimensional structure of the eating disorder examination-questionnaire (EDE-Q) in women with eating disorders. Journal of Psychiatric Research, 163, 254–261. https://doi.org/10.1016/j.jpsychires.2023.05.063
+# Russell-Lasalandra, L., Golino, H., Garrido, L., & Christensen, A. (n.d.). The Ultimate Tutorial for AI-driven Scale Development in Generative Psychometrics: Releasing AIGENIE from its Bottle.
+# Samo, A., Christensen, A. P., Abad, F. J., Garrido, L. E., Jiménez, M., Garcia-Garzon, E., Golino, H., & McAbee, S. T. (2023). Building the Structure of Personality from the Bottom-Up using Hierarchical Exploratory Graph Analysis. https://doi.org/10.31234/osf.io/zx7tc
+# Verma, D. (Ed.). (2010). Network Science for Military Coalition Operations: Information Exchange and Interaction. IGI Global. https://doi.org/10.4018/978-1-61520-855-5
+
 #
 #  Documentação do EGAnet: https://r-ega.net
 # =============================================================================
