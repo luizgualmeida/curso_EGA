@@ -14,7 +14,13 @@
 
 
 
+
+
+#######################################################---
+#######################################################---
 #  BLOCO 0 – INSTALAÇÃO E CARREGAMENTO DOS PACOTES ----
+#######################################################---
+#######################################################---
 
 # Instale apenas se ainda não tiver instalado.
 # Remova o "#" na frente de install.packages() da linha correspondente
@@ -45,7 +51,15 @@ packageVersion("psych")    # idealmente >= 2.0
 
 
 
+
+
+#######################################################---
+#######################################################---
 #  BLOCO 1 – CARREGANDO E PREPARANDO OS DADOS ----
+#######################################################---
+#######################################################---
+
+
 
 
 # Os dados vêm do estudo: Trust in scientists and their role in society across 
@@ -78,8 +92,8 @@ dados_br <- dados_completos %>%   #|>
 nrow(dados_br)
 
 # Para analisar países específicos, pode-se usar:
-# dados_BRA_USA_DEU <- dados_completos |>
-#   filter(COUNTRY_CODE %in% c("BRA", "USA", "DEU"))
+dados_BRA_USA_DEU <- dados_completos |>
+  filter(COUNTRY_CODE %in% c("BRA", "USA", "DEU"))
 
 
 ## --- 1.3 Rodando com todos os países FOCO DO CURSO ------------------------------
@@ -124,7 +138,17 @@ head(itens_trust)
 
 
 
+
+
+
+
+#######################################################---
+#######################################################---
 #  BLOCO 2 – ESTATÍSTICAS DESCRITIVAS E EXPLORAÇÃO INICIAL----
+#######################################################---
+#######################################################---
+
+
 
 # Antes de qualquer análise de rede, é essencial conhecer os seus dados.
 # Pule esta etapa e você pode chegar a conclusões equivocadas.
@@ -184,7 +208,17 @@ heatmap(cor_matrix)
 
 
 
+
+#######################################################---
+#######################################################---
 #  BLOCO 3 – PASSO 1: ANÁLISE DE VARIÁVEIS ÚNICAS (UVA)----
+#######################################################---
+#######################################################---
+
+
+
+
+
 ##  Identificar e tratar redundâncias entre itens----
 
 # O que é UVA?
@@ -237,7 +271,7 @@ cat("N após remoção de NAs:", nrow(itens_trust_uva), "\n")
 # Rodando a UVA
 # O argumento "key" permite passar os textos reais dos itens (opcional, mas útil)
 uva_resultado <- UVA(
-  data = itens_trust_uva,
+  data = itens_trust,
 )
 
 # Exibindo os resultados
@@ -255,10 +289,40 @@ uva_resultado$keep_remove
 # O banco de dados já reduzido (sem itens redundantes):
 dados_reduzidos <- uva_resultado$reduced_data
 
-cat("\nDimensões dos dados originais:", dim(itens_trust_uva), "\n")
+cat("\nDimensões dos dados originais:", dim(itens_trust), "\n")
 cat("Dimensões dos dados reduzidos:", dim(dados_reduzidos), "\n")
 cat("Itens removidos por redundância:",
-    ncol(itens_trust_uva) - ncol(dados_reduzidos), "\n")
+    ncol(itens_trust) - ncol(dados_reduzidos), "\n")
+
+# Critério utilizado pelo EGAnet
+# 
+# Internamente, a função avalia principalmente:
+#   
+#   1. Maior conectividade única
+# 
+# Qual item possui relações mais exclusivas com os demais nós?
+#   
+#   Exemplo:
+#   
+#   Qualified
+# ├─ Expert
+# ├─ Intellig
+# ├─ Honest
+# └─ Ethical
+# 
+# Intellig
+# ├─ Qualified
+# └─ Expert
+
+# 2. Centralidade na rede
+# 
+# Frequentemente o item mantido é o mais central.
+# 
+# Por exemplo:
+#   
+#   strength(Qualified) > strength(Intellig)
+
+## VAMOS VER ÍNDICES DE CENTRALIDADE NA AULA 2
 
 
 ## --- 3.3 [OPCIONAL] Tratamento manual de redundâncias ------------------------
@@ -267,13 +331,23 @@ cat("Itens removidos por redundância:",
 # dados_reduzidos <- dados_completos_uva |>
 #   dplyr::select(-nome_do_item_redundante)
 
+## IMPORTANTE
+# UVA ≠ análise de qualidade do item
+# UVA = análise de redundância do item
+
+## TEORIA PREVALECE.
+### Nosso objetivo é avaliar estrutura teórica já estabelecida.
 
 
 
 
-
-
+#######################################################---
+#######################################################---
 #  BLOCO 4 – PASSO 2: EGA — EXPLORATORY GRAPH ANALYSIS----
+#######################################################---
+#######################################################---
+
+
 
 # O que é a EGA?
 # ─────────────────────────────────────────────────────────────────────────
@@ -411,8 +485,6 @@ ega_trust <- EGA(
 
 ## --- 4.3 Rodando a EGA -------------------------------------------------------
 
-set.seed(42)   # fixando a semente para reprodutibilidade
-
 ega_resultado <- EGA(
   data = itens_trust,
   
@@ -494,7 +566,17 @@ plot(ega_resultado)
 
 
 
-# SUGESTÃO PARADA AULA 1----
+
+
+##############################################---
+# SUGESTÃO PARADA AULA 1 e VOLTAR PARA SLIDES----
+##############################################---
+
+
+
+
+
+
 ## --- 4.5 Comparando algoritmos de comunidade ---------------------------------
 #
 # É boa prática verificar se o resultado é robusto ao algoritmo escolhido.
@@ -784,7 +866,7 @@ cat("Objetos salvos em 'resultados_ega_brasil.RData'\n")
 
 
 #  BLOCO 9 – EXERCÍCIOS PROPOSTOS----
-# =============================================================================
+# ==============================================================================-
 
 # EXERCÍCIO 1 – Explorando os dados
 # ─────────────────────────────────
@@ -836,15 +918,20 @@ cat("Objetos salvos em 'resultados_ega_brasil.RData'\n")
 #    transcultural do instrumento?
 
 
-# =============================================================================
-#  FIM DO SCRIPT
-# =============================================================================
+# =============================================================================-
+#  FIM DO SCRIPT----
+# =============================================================================-
 #
-#  Referências principais:
+#  Referências principais:----
 #
 #  Golino, H. F., & Epskamp, S. (2017). Exploratory graph analysis:
 #    A new approach for estimating the number of dimensions in
 #    psychological research. PLoS ONE, 12(6), e0174035.
+#  Golino, H., Shi, D., Christensen, A. P., Garrido, L. E., Nieto, M. D., 
+#  Sadana, R., Thiyagarajan, J. A., & Martinez-Molina, A. (2020). Investigating 
+#  the performance of exploratory graph analysis and traditional techniques to 
+# identify the number of latent factors: A simulation and tutorial. 
+# Psychological methods, 25(3), 292–320. https://doi.org/10.1037/met0000255
 #
 #  Christensen, A. P., & Golino, H. (2021). Estimating the stability
 #    of psychological dimensions via bootstrap exploratory graph
@@ -876,4 +963,4 @@ cat("Objetos salvos em 'resultados_ega_brasil.RData'\n")
 
 #
 #  Documentação do EGAnet: https://r-ega.net
-# =============================================================================
+# =============================================================================-
