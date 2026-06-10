@@ -90,7 +90,6 @@ dados_br <- dados_completos %>%   #|>
 
 # Verificando quantos participantes temos do Brasil
 nrow(dados_br)
-
 # Para analisar países específicos, pode-se usar:
 dados_BRA_USA_DEU <- dados_completos |>
   filter(COUNTRY_CODE %in% c("BRA", "USA", "DEU"))
@@ -101,6 +100,7 @@ dados_BRA_USA_DEU <- dados_completos |>
 #
 dados_analise <- dados_completos   # sem filtro de país
 
+glimpse(dados_analise)
 
 ## --- 1.4 Selecionando apenas os itens de confiança ---------------------------
 # A escala de confiança nos cientistas tem múltiplos itens.
@@ -129,8 +129,8 @@ dim(itens_trust)
 head(itens_trust)
 
 # Salvando o objeto final que usaremos nas análises
-# saveRDS(itens_trust, file = "itens_trust")
-# write.csv(itens_trust, file = "itens_trust-comma")
+saveRDS(itens_trust, file = "itens_trust.rds")
+write.csv(itens_trust, file = "itens_trust-comma.csv")
 
 
 
@@ -271,7 +271,7 @@ cat("N após remoção de NAs:", nrow(itens_trust_uva), "\n")
 # Rodando a UVA
 # O argumento "key" permite passar os textos reais dos itens (opcional, mas útil)
 uva_resultado <- UVA(
-  data = itens_trust,
+  data = itens_trust_uva,
 )
 
 # Exibindo os resultados
@@ -347,7 +347,7 @@ cat("Itens removidos por redundância:",
 #######################################################---
 #######################################################---
 
-
+itens_trust <- readRDS("itens_trust.rds")
 
 # O que é a EGA?
 # ─────────────────────────────────────────────────────────────────────────
@@ -582,49 +582,46 @@ plot(ega_resultado)
 # É boa prática verificar se o resultado é robusto ao algoritmo escolhido.
 # Rode a EGA com pelo menos dois algoritmos e compare o n.dim:
 
-set.seed(42)
+
+
+ega_louvain <- EGA(
+  data    = itens_trust,
+  model   = "glasso",
+  algorithm  = "louvain",
+  uni.method = "expand",
+  plot.EGA   = TRUE       # sem gráfico para esta comparação
+)
+
 ega_walktrap <- EGA(
   data    = itens_trust,
   model   = "glasso",
   algorithm  = "walktrap",
   uni.method = "expand",
-  plot.EGA   = FALSE       # sem gráfico para esta comparação
+  plot.EGA   = TRUE       # sem gráfico para esta comparação
 )
 
-set.seed(42)
 ega_leiden <- EGA(
   data    = itens_trust,
   model   = "glasso",
   algorithm  = "leiden",
   uni.method = "expand",
-  plot.EGA   = FALSE
+  plot.EGA   = TRUE
 )
 
 # Tabela comparativa
 cat("\n--- Comparação de algoritmos ---\n")
-cat("Louvain  :", ega_resultado$n.dim, "dimensões\n")
+cat("Louvain  :", ega_louvain$n.dim, "dimensões\n")
 cat("Walktrap :", ega_walktrap$n.dim,  "dimensões\n")
 cat("Leiden   :", ega_leiden$n.dim,    "dimensões\n")
 #
 # Se os três concordarem → resultado robusto ao algoritmo, maior confiança.
 # Se divergirem → investigue com o bootEGA qual solução é mais estável.
 
+# Comparação TEFI
+ega_louvain$TEFI
+ega_walktrap$TEFI
+ega_leiden$TEFI
 
-## --- 4.6 [OPCIONAL] EGA com dados de todos os países -------------------------
-# Para replicar com todos os países (sem filtro):
-#
-# dados_todos <- dados_completos |>
-#   select(starts_with("ts_")) |>  # ajuste o prefixo
-#   na.omit()
-#
-# uva_todos   <- UVA(data = dados_todos)
-# ega_todos   <- EGA(
-#   data       = uva_todos$reduced_data,
-#   model      = "glasso",
-#   algorithm  = "louvain",
-#   uni.method = "expand"   # importante manter aqui também
-# )
-# summary(ega_todos)
 
 
 
@@ -649,10 +646,11 @@ cat("Leiden   :", ega_leiden$n.dim,    "dimensões\n")
 # ATENÇÃO: este passo é computacionalmente mais pesado.
 # 500 iterações podem levar alguns minutos dependendo do computador.
 
-set.seed(42)
 
 boot_resultado <- bootEGA(
-  data = itens_trust_completo,
+  data = itens_trust,
+  algorithm = "louvain",
+  uni.method = "expand",
   iter = 500,              # número de amostras bootstrap (padrão: 500)
   seed = 42,              # reprodutibilidade
   type = "parametric",    # "parametric" (padrão) ou "resampling"
@@ -737,14 +735,18 @@ centralidade <- centrality_auto(ega_resultado$network)
 # Visualizando as centralidades
 centralityPlot(ega_resultado$network,
                include = c("Strength", "Betweenness", "Closeness"),
-               orderBy = "Strength")
+               orderBy = "Strength",
+               scale = "z-score")
+
+centrality_table <- centralityTable(ega_resultado$network)
+
 
 
 ## --- 6.2 Extraindo os valores numéricos de centralidade ----------------------
 
 # Força (strength) de cada item — o mais usado em psicometria de redes
 forca <- centralidade$node.centrality$Strength
-names(forca) <- names(dados_reduzidos)
+names(forca) <- names(itens_trust)
 
 # Ordenando do mais ao menos central
 sort(forca, decreasing = TRUE)
@@ -763,7 +765,7 @@ cat("Item menos central (menor Strength):",
 
 ## --- 7.1 Lista de países disponíveis -----------------------------------------
 
-paises <- unique(dados_completos$country)
+paises <- unique(dados_completos$COUNTRY_CODE)
 print(paises)
 
 ## --- 7.2 Função para rodar EGA por país (com tratamento de erros) ------------
@@ -774,8 +776,8 @@ rodar_ega_por_pais <- function(pais, dados_raw) {
 
   # Filtrando
   d <- dados_raw |>
-    filter(country == pais) |>
-    select(starts_with("ts_")) |>    # ajuste o prefixo
+    filter(COUNTRY_CODE == pais) |>
+    select(starts_with("TRUST_SCI_")) |>    # ajuste o prefixo
     na.omit()
 
   cat("N =", nrow(d), "\n")
@@ -785,13 +787,13 @@ rodar_ega_por_pais <- function(pais, dados_raw) {
     cat("AVISO: amostra pequena (N < 100). Resultados podem ser instáveis.\n")
   }
 
-  # UVA
-  uva <- tryCatch(UVA(data = d), error = function(e) NULL)
-  if (is.null(uva)) { cat("Erro na UVA.\n"); return(NULL) }
-
   # EGA
   ega <- tryCatch(
-    EGA(data = uva$reduced_data, plot.EGA = FALSE),
+    EGA(data = d,
+        model = "glasso",
+        algorithm = "louvain",
+        uni.method = "expand",
+        plot.EGA = FALSE),
     error = function(e) NULL
   )
 
@@ -801,12 +803,68 @@ rodar_ega_por_pais <- function(pais, dados_raw) {
   return(ega)
 }
 
-# Exemplo: rodando para um segundo país (ex: USA)
-# ega_usa <- rodar_ega_por_pais("USA", dados_completos)
+# Exemplo: rodando para USA
+ega_chl <- rodar_ega_por_pais("CHL", dados_completos)
+plot(ega_chl)
+
+# Exemplo: rodando para BRA
+ega_bra <- rodar_ega_por_pais("BRA", dados_completos)
+plot(ega_bra)
+
+
 
 # Para rodar para TODOS os países (pode demorar):
 # resultados_paises <- lapply(paises, rodar_ega_por_pais, dados_raw = dados_completos)
 # names(resultados_paises) <- paises
+
+
+## -- 7.3 Análise de invariância ----
+
+dados_BRA_CHL <- dados_completos %>% 
+  filter(COUNTRY_CODE %in% c("BRA", "CHL"))
+
+itens_invariancia <- dados_BRA_CHL %>% 
+  dplyr::select(starts_with("TRUST_SCI_"))
+
+
+invariance <- invariance(data = itens_invariancia,
+                             groups = as.character(dados_BRA_CHL$COUNTRY_CODE),
+                             iter = 500,
+                             corr= "auto",
+                             configural.type = 'parametric',
+                             na.data = 'pairwise',
+                             model = "glasso",
+                             algorithm = "louvain",
+                             uni.method = "expand",
+                             ncores = 4,
+                             seed = 42)
+# save(invariance, file="invariance.Rds")
+# load("invariance.Rds")
+
+typeof(invariance)
+str(ega_trust)
+str(invariance)
+
+
+
+### NÃO ESQUECER DE RODAR FUNÇÕES AUXILIARES!!!
+
+
+# Invariância configural
+config_invariance(invariance)
+invariance$configural.results
+
+plot(invariance)
+
+# Plot está levando em conta o p não ajustado
+invariance$results
+
+# Invariância aproximada
+approx_invariance(invariance)
+
+
+# Invariância métrica aproximada
+partial_invariance_2_4_trust(invariance)
 
 
 #  BLOCO 8 – REPORTANDO OS RESULTADOS----
@@ -857,11 +915,11 @@ cat("Tabela exportada para 'resultado_dimensoes_brasil.csv'\n")
 
 # Salva tudo em um único arquivo para não perder os resultados
 save(uva_resultado, ega_resultado, boot_resultado,
-     file = "resultados_ega_brasil.RData")
-cat("Objetos salvos em 'resultados_ega_brasil.RData'\n")
+     file = "resultados_ega.RData")
+cat("Objetos salvos em 'resultados_ega.RData'\n")
 
 # Para carregar futuramente:
-# load("resultados_ega_brasil.RData")
+# load("resultados_ega.RData")
 
 
 
